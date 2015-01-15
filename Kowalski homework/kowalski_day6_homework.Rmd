@@ -5,9 +5,10 @@ output: html_document
 ```{r}
 mydata <- read.csv("Kowalski_withAgentProp.csv")
 mydata <- mydata[ , c("Participant","Trial","Item","Condition","List","Correct","Time","agentprop")]
-times <- read.csv("times.csv")
+times <- read.csv("times.csv", row.names=NULL)
 times$Condition <- as.factor(times$Condition)
 levels(times$Condition) <- c("SRC","ORC","Act","Pass")
+colnames(times) <- c("Order","Item","Condition","Region","Onset")
 ```
 1. Think carefully about your data.  Think about something you would like to do multiple times, to subsets of your data.  
 
@@ -23,10 +24,15 @@ I would like to code the data for the critical regions of the sentence stimuli. 
 ```
 4. Write some (real) code that will do what you want ONCE, on one subset of the data.
 ```{r}
-if(mydata$List == 2
+my.vector <- vector(length = 288)
+
+mydata.merged <- merge(times, mydata) 
+summary(mydata.merged)
+
+if(mydata.merged$List == 2
    & mydata$Item == 1
    & mydata$Time >= 619){
-  mydata$region <- "Disamb"
+  my.vector <- mydata$
    }
 ``` 
 

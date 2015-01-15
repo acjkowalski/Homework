@@ -1,0 +1,144 @@
+---
+title: "Day 8 Lecture"
+output: html_document
+---
+
+# Vectorization overview
+  - sometimes faster (not always)
+  - sometimes easier to think about (not always)
+  - split-apply-combine
+  
+# The `apply` family
+
+## `apply`
+
+- good for "row-wise" operations over data frames (or column-wise)
+- give it only the columns/rows you want to operate on
+- the `MARGIN` argument says whether it's row-wise (=1) or column-wise (=2)
+- the `FUN` argument says what to do with each row/column-wise vector
+
+```{r}
+minpair <- read.csv("scottdata/CognitionPaperFinalData.csv")
+head(minpair)
+colnames(minpair)
+
+minpair$allmean <- apply(minpair[, 10:17], MARGIN = 1, mean) # give it the data you want it to, here, columns 10-17. 
+# made a new column and that column is the mean of each row
+head(minpair)
+# for accross multiple columns of your data
+```
+
+## other members of the `apply` family
+  - generally avoid, if possible!
+
+### `lapply`
+  - "list" apply
+  - does something to each member of a list/vector
+  - returns a list
+
+### `tapply`
+  - "table" apply
+  - does something to data in "cells" by a combination of factors
+  - returns a table
+
+### `sapply`
+  - "simple" apply
+  - returns a vector
+  - usually what you want instead of `lapply`
+
+# A better way: `plyr` and `dplyr`
+  - best for data frames
+  
+## `plyr`
+  - the `plyr` package is older, slower, not under very active development
+  - instantiates a "split-apply-combine" philosophy
+  - handy paper here: http://www.jstatsoft.org/v40/i01
+  - series of related functions
+    - XYply, where X = "thing you give it" and Y = "thing it gives you back"
+    - `ldply()` = you give it a list, it gives you back a data frame
+    - `daply()` = you give it a data frame, it gives you back an array
+    - etc.
+
+```{r}
+#library("plyr")
+my.function <- ()
+
+results <_ ddply(mydata, c("factor1","factor2"), my.function) # function will apply to that chunk of stuff
+```
+## `dplyr`
+  - the most common usage for `plyr` is `ddply()` -- give it a data frame and get a data frame back
+  - the `dplyr` package takes this and runs with it
+  - DON'T library both packages in the same session (unless you really need to and know what you're doing)
+  - `dplyr` is implemented to be much faster
+  - `dplyr` is the future...
+  
+### `dplyr` usage
+  
+  - "verbs": `mutate`, `filter`, `select`, `summarise` (or `summarize`), `arrange`
+  - use `group_by()` to set the groups over which something (like `summarize` will apply)
+  - `mutate` = "transform"
+  - `filter` = "get some of the rows"
+  - `select` = "get some of the columns"
+  - `summarise` = "boil tings down to some kind of summary"
+  
+```{r}
+library("dplyr")
+minpair <- mutate(minpair, newcolumn = log(HiSegTok))
+head(minpair)
+# the same as
+minpair$newcolumn <- log(minpair$HiSegTok)
+# multiple functions/columns
+minpair <- mutate(minpair, newcolumn = log(HiSegTok), anothercol = log(HiSegType))
+head(minpair)
+
+minpair.subset <- filter(minpair, Corpus != "Am", log(LoSegType) > -5)
+summary(minpair.subset)
+
+minpair.column.subset <- select(minpair, Corpus, Merged)
+head(minpair.column.subset)
+#only keep a stretch of columns
+minpair.column.subset <- select(minpair, -(AllMinPairs:WithinMinPairs))
+head(minpair.column.subset)
+minpair.column.subset <- select(minpair, Corpus:Merged, AllMinPairs:WithinMinPairs)
+head(minpair.column.subset)
+
+summarize(minpair, mymean = mean(HiSegTok), anothermean = mean(LoSegTok))
+#same as
+data.frame(mymean = mean(minpair$HiSegTok), anothermean = mean(minpair$LoSegTok))
+
+# group_by()
+minpair.grouped <- group_by(minpair, Corpus)
+nrow(minpair)
+nrow(minpair.grouped)
+head(minpair)
+head(minpair.grouped) #nothing in dataframe has changed but you get a different output
+#clean-up (sometimes, but narely, needed)
+minpair.grouped.clean <- as.data.frame(minpair.grouped)
+head(minpair.grouped.clean)
+
+summarize(minpair.grouped, means = mean(HiSegTok))
+
+## the pipe
+x <- 1:10
+y <- log(x)
+z <- sd(y)
+z  # saving a lot of parts
+
+sd(log(1:10)) # hard to read, have to think inside out
+
+1:10 %>% log %>% sd #take those results and then do the next things, and then the next thing. think sequentially.
+
+minpair %>% group_by(Corpus) %>% summarize(mean1 = mean(HiSegTok), mean2 = mean(LoSegTok))
+
+minpair %>% 
+  filter(WithinMinPairs > 2) %>%
+  group_by(Corpus) %>%
+  summarize(mean1 = mean(HiSegTok), mean2 = mean(LoSegTok))
+
+minpair %>%
+  group_by(Corpus, Merged) %>%
+  summarize(mean1 = mean(HiSegTok), mean2 = mean(LoSegTok)) %>%
+  summarize(mean1 = mean(mean1), mean2 = mean(mean))
+
+```
+

@@ -1,0 +1,125 @@
+---
+title: "Day 7 Lecture"
+output: html_document
+---
+# 0. Libraries
+```{r}
+library(ggplot2)
+```
+
+# 1. Review HW 4
+### A. Combining values in columns colA and colB when they are "complementary" (i.e., one has NAs where the other has values)
+```{r}
+mydata <- data.frame(colA = c(NA, 1, 2, NA, NA), colB = c(45, NA, NA, 2, 99))
+mydata
+
+mydata$colC <- mydata$colA # create colC and put the values in colA into colC
+mydata$colC[is.na(mydata$colC)] # not sure if we need this
+
+# wherever column A is NA, put the value that's in column B (when the value in column A is NA) into column C:
+mydata$colC[is.na(mydata$colA)] <- mydata$colB[is.na(mydata$colA)]
+mydata
+```
+
+### B. Checking for and locating NAs
+```{r}
+exdata <- data.frame(colA = c(NA, 1, 2, NA, 4), colB = c(45, NA, NA, 2, 99), colC = c(66, 5, NA, 3, 5))
+exdata
+complete.cases(exdata)
+exdata[!complete.cases(exdata),]
+which(!complete.cases(exdata))
+```
+
+### C. Miscellaneous notes
+- if you want to change the order of factors, use **factor()**, DON'T use reorder()!
+- which() takes a logical and returns the locations where it's true
+
+# 2. Review HW 5
+### A. Transforming variables
+```{r}
+minpair <- read.csv("~/Documents/UMD and CASL/Classes/R Class/r_programming_bsos/scottdata/CognitionPaperFinalData.csv")
+head(minpair)
+ggplot(minpair, aes(WithinMinPairs)) + geom_histogram() + geom_vline(xintercept = 1000, color = "red")
+
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram() 
+```
+
+### B. Changing graph colors
+**See http://colorbrewer2.org/**  
+- use scale_fill_brewer(palette = "Set#") to use colorbrewer for discrete variables 
+- use scale_fill_manual(values = c("names")) to set values manually for discrete variables 
+- other color info: http://research.stowers-institute.org/efg/R/Color/Chart/index.htm
+- wes anderson color palette: https://github.com/karthik/wesanderson
+
+Setting colors using color brewer
+```{r}
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram(aes(fill = Corpus)) + scale_fill_brewer(palette = "Set2")
+
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram(aes(fill = Merged)) + scale_fill_brewer(palette = "Set2")
+
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram(aes(fill = Corpus)) + scale_fill_brewer(palette = "PuOr")
+```
+
+Setting colors based on actual color names
+```{r}
+# ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram(aes(fill = Corpus)) + scale_fill_manual(values = c("firebrick", "steelblue"))
+```
+
+Setting colors based on RGB values
+```{r}
+ggplot(minpair, aes(log(WithinMinPairs))) + geom_histogram(aes(fill = Merged)) + scale_fill_manual(values = c("firebrick", rgb(27, 158, 119, maxColorValue = 255)))
+```
+
+Color charts!
+```{r}
+n=12
+pie(rep(1,n), col=rainbow(n))
+pie(rep(1,n), col=heat.colors(n))
+pie(rep(1,n), col=terrain.colors(n))
+pie(rep(1,n), col=topo.colors(n))
+pie(rep(1,n), col=cm.colors(n))
+barplot(seq(1:12), col=topo.colors(12))
+?rainbow
+?palette
+```
+
+RColorBrewer package
+```{r}
+library(RColorBrewer)
+
+par(mar = c(0, 4, 0, 0))
+display.brewer.all()
+```
+
+wesanderson package
+- general info: https://github.com/karthik/wesanderson
+- help file: http://cran.r-project.org/web/packages/wesanderson/wesanderson.pdf
+```{r}
+library(wesanderson)
+
+namelist
+
+ggplot(iris, aes(Sepal.Length, Sepal.Width, color = Species)) + 
+  geom_point(size = 3) + 
+  scale_color_manual(values = wes.palette(3, "Cavalcanti")) + 
+  theme_minimal()
+```
+
+### B. Other visualization stuff
+- plotting symbols: http://vis.supstat.com/2013/04/plotting-symbols-and-color-palettes/
+
+# 3. Review Practice 6
+
+# 4. Review HW 6
+
+# 5. Other review
+
+# 6. GitHub
+
+# 7. GitHub Practice
+
+# 8. Rest of the course
+  - `dplyr`
+  - functions
+  - special topics
+  - make-up time

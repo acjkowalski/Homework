@@ -1,0 +1,70 @@
+---
+title: "Day 8 Practice"
+output: html_document
+---
+
+1. Start with this data:
+
+```{r}
+library(dplyr)
+library(reshape2)
+minpair <- read.csv("scottdata/CognitionPaperFinalData.csv")
+```
+
+2. Get the means of `WithinMinPairs` for each level of `Corpus`
+```{r}
+head(minpair)
+minpair.grouped <- group_by(minpair, Corpus)
+head(minpair.grouped)
+summarize(minpair.grouped, means = mean(WithinMinPairs))
+
+## by pipe
+minpair %>%
+  group_by(Corpus) %>%
+  summarize(mean = mean(WithinMinPairs))
+```
+
+3. Get cell means of `WithinMinPairs` by `Corpus` and `Merged`
+```{r}
+minpair %>%
+  group_by(Corpus, Merged) %>%
+  summarize(mean1 = mean(WithinMinPairs)) 
+```
+
+4. Melt down the last four columns, which are all frequency measures.  Get the min, max, and mean log values for all of these measures, by Corpus and Merged.
+  - HINT: melt down the frequency columns first
+```{r}
+library("reshape2")
+# mine:
+# head(minpair)
+# minpair.subset <- select(minpair, Corpus, Merged)
+# minpair.melted <- melt(minpair, measure.vars = c("AllEntropy","WithinEntropy","SegEntropy","BiphoneEntropy"), value.name = "frequency", variable.name = "Entropy")
+# head(minpair.melted)
+# minpair.melted.2 <- melt(minpair.melted, measure.vars = c("HiSegTok","LoSegTok","HiSegType","LoSegType"), value.name = "frequency2", variable.name = "Seg")
+# head(minpair.melted.2)
+# minpair.melted.2 %>%
+#   group_by(Corpus, Merged) %>%
+#   summarize(min1 = min(frequency2), max1 = max(frequency2), mean.log = mean(log(frequency2)))
+#####
+minpair%>%
+  melt(measure.vars = 14:17) %>%
+  group_by(variable, Corpus, Merged) %>%
+  summarize(minlog = min(log(value)), maxlog = max(log(value)), mean = mean(log(value)))
+
+```
+5. Do the same as 4, but only where HiSegTok is greater than the median value for each corpus.
+```{r}
+step1 <- minpair %>%
+  group_by(Corpus) %>%
+  summarize(medHST = median(HiSegTok))
+step1
+
+minpair %>%
+  merge(step1) %>%
+  filter(HiSegTok > medHST) %>%
+  melt(measure.vars = 14:17) $>$
+  group_by(variable, Corpus, Merged) %>%
+  summarize(minlog = min(log(value)), maxlog = max(log(value)), mean = mean (log(value)))
+  
+
+```
