@@ -1,0 +1,49 @@
+---
+title: "Day 6 Homework"
+output: html_document
+---
+```{r}
+mydata <- read.csv("Kowalski_withAgentProp.csv")
+mydata <- mydata[ , c("Participant","Trial","Item","Condition","List","Correct","Time","agentprop")]
+times <- read.csv("times.csv")
+times$Condition <- as.factor(times$Condition)
+levels(times$Condition) <- c("SRC","ORC","Act","Pass")
+```
+1. Think carefully about your data.  Think about something you would like to do multiple times, to subsets of your data.  
+
+2. Write out (in plain English, in the notebook) what you are trying to do
+I would like to code the data for the critical regions of the sentence stimuli. Each region and each sentence was a different length.
+
+3. Write some "pseudo-code" comments in an R chunk, as an outline
+```{r}
+# if this list 
+# and this trial (or item) 
+# and greater than these times and less than those times,
+# region x
+```
+4. Write some (real) code that will do what you want ONCE, on one subset of the data.
+```{r}
+if(mydata$List == 2
+   & mydata$Item == 1
+   & mydata$Time >= 619){
+  mydata$region <- "Disamb"
+   }
+``` 
+
+5. Copy that code chunk, and convert it into a loop, which will do what you want over all the groups, concatenating the results.
+
+```{r}
+time.vector <- mydata$Time
+
+my.vector <- vector(length = 288)
+for(this.group in time.vector) {
+  if (this.group >= times$time) {
+    my.vector <- times$Region
+  }
+}
+  
+### this made R very angry. 
+
+```
+
+6. Copy that loop again, and at a condition (`if`) statement to add some further control about ignoring some groups or some other conditional operation.

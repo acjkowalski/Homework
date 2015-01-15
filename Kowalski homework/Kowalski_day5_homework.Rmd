@@ -1,0 +1,156 @@
+---
+title: "Day 5 Homework"
+output: html_document
+---
+```{r}
+library("ggplot2")
+```
+0. Start out by getting your data into "long" format.  This will help with some of the following.
+```{r}
+mydata <- read.csv("Kowalski_newdata.csv")
+head(mydata)
+mydata$agentprop <- ifelse(mydata$Agent == 1, 1, NA)
+mydata$agentprop <- ifelse(mydata$Patient == 1, -1, mydata$agentprop)
+mydata$agentprop <- ifelse(mydata$Middle == 1, 0.5, mydata$agentprop)
+mydata2 <- mydata[ , c("Subject","Trial","Item","Condition","Order","Accuracy","ms","region","agentprop")]
+head(mydata2)
+write.table(mydata2, file = "Kowalski_withAgentProp.csv", sep=",") #easier in the long run- for next time
+```
+1. Pick a single numerical variable from your data.  Use `ggplot` to plot a histogram and a density plot (separately).
+   - Try some different values for `binwidth` for the histogram.
+   - Try some different values for `adjust` for the density plot.
+```{r}
+mydata.agg <- dcast(mydata2, Subject + Trial + Condition + region ~., fun.aggregate = mean, value.var = "agentprop")
+colnames(mydata.agg) <- c("Subject","Trial","Condition","Region","agentprop")
+myhisto <-ggplot(mydata.agg, aes(x=agentprop)) + geom_histogram()
+
+myhisto + geom_histogram(binwidth = .5)
+myhisto + geom_histogram(binwidth = .01)
+
+mydensity <- ggplot(mydata.agg, aes(x=agentprop)) 
+mydensity + geom_density()
+
+mydensity + geom_density(adjust = 1.5)
+mydensity + geom_density(adjust = .05)
+```
+2. How does the distribution look?  Try transforming the variable and try to get it to look more normal (i.e., more Gaussian).  If it already looks normal, do something to it to make it look non-normal.
+```{r}
+ggplot(mydata.agg, aes(log(agentprop))) + geom_histogram()
+ggplot(mydata.agg, aes(sqrt(agentprop))) + geom_histogram()
+
+
+#for outliers
+ggplot(mydata.agg, aes(log(agentprop))) + geom_histogram() + geom_vline(xintercept = 1000, color = "red")
+```
+
+3. Is there a factor that you can use to break up this variable into groups of observations?  If not, reshape your data so that there is, or create a factor if necessary.  Then, do the following:
+   - Plot it as a density plot, mapping `color` to the factor
+   - Same, but try using `fill` instead of `color`
+   - Same, using `linetype` instead of `color`
+   - Plot the data as a boxplot, with the factor as `x` and the numerical variable as `y`
+```{r}
+ggplot(mydata.agg, aes(x = agentprop, color = Condition)) + geom_density()
+
+ggplot(mydata.agg, aes(x = agentprop, fill = Condition)) + geom_density()
+
+ggplot(mydata.agg, aes(x = agentprop, linetype = Condition)) + geom_density()
+
+ggplot(mydata.agg, aes(x = Condition, y= agentprop)) + geom_boxplot()
+
+
+###
+#colors
+mydata.agg$Condition <- as.factor(mydata.agg$Condition)
+levels(mydata.agg$Condition) <- c("SRC","ORC","Act","Pass")
+ggplot(mydata.agg, aes(agentprop)) + geom_histogram(aes(fill = Condition)) + scale_fill_manual(values = c("firebrick","blue","yellow",rgb(27,158,119, maxColorValue = 255)))
+# + scale_fill_brewer(palette = "Set1")
+# + scale_fill_manual(values = c("firebrick","steelblue"))
+# + scale_fill_manual(values = c("firebrick",rgb(27,158,119, maxColorValue = 255)))
+colors()
+
+```
+4. Now let's look at breaking up a histogram across a factor.  With the same variables you used in #3:
+   - Plot a histogram, but use faceting to display them, one above the other.
+   - Try mapping the factor to `color` or `fill`, to see what that looks like.
+   - Which one seems most useful or informative for your data, and why?
+```{r}
+ggplot(mydata.agg, aes(x = agentprop)) + geom_histogram() + facet_grid(Condition ~.)
+ggplot(mydata.agg, aes(x = agentprop, fill = Condition)) + geom_histogram() + facet_grid(Condition ~ Region) #good for two factors to see the relationship like correlations between pairs of variables
+
+ggplot(mydata.agg, aes(agentprop)) + geom_histogram(aes(fill = Condition)) + facet_wrap(~Region) # give one dimention and wraps along the edge of the page, try to make it a square. looks at all combos of two things if you have more than one variables
+```
+5. Now find two numerical variables.  You may need to reshape your data.  For example, if you have one numerical variable and a "condition" factor, you could use `dcast` to spread that variable across multiple columns (one per level of the factor).  Once you have two numerical variables:
+   - Create a scatterplot, with one variable mapped to `x` and the other to `y`.
+   - Plot a "loess" smoother on top of the scatterplot
+   - Plot a regression line on top of the scatterplot (instead of the loess)
+```{r}
+head(mydata.agg)
+mydata.wide <- dcast(mydata.agg, Participant + Region ~ Condition, value.var ="agentprop", fun.aggregate=mean)
+head(mydata.wide)
+
+ggplot(mydata.wide, aes(x=SRC, y=ORC)) + geom_point() + geom_smooth(method = "loess")
+
+scatter + geom_point() + geom_smooth(method = "lm")
+
+```
+6. Are there any other factors that split up the variable plotted in #5?  If so try the following:
+   - Map the factor to `color`
+   - Facet by the factor
+```{r}
+ggplot(mydata.wide, aes(x=SRC, y=ORC, color=Region)) + scatter2 + geom_point()
+```
+7. Output all of the plots above as a single PDF.
+```{r}
+pdf("myplot.pdf", width = 10, height = 4)
+mydata.agg <- dcast(mydata2, Participant + Trial + Condition + Region ~., fun.aggregate = mean, value.var = "agentprop")
+colnames(mydata.agg) <- c("Participant","Trial","Condition","Region","agentprop")
+myhisto <-ggplot(mydata.agg, aes(x=agentprop)) + geom_histogram()
+
+myhisto + geom_histogram(binwidth = .5)
+myhisto + geom_histogram(binwidth = .01)
+
+mydensity <- ggplot(mydata.agg, aes(x=agentprop)) 
+mydensity + geom_density(aes(fill = Condition), alpha = .3) + theme_minimal()
+
+mydensity + geom_density(adjust = 1.5)
+mydensity + geom_density(adjust = .05)
+
+ggplot(mydata.agg, aes(log(agentprop))) + geom_histogram()
+ggplot(mydata.agg, aes(sqrt(agentprop))) + geom_histogram()
+
+ggplot(mydata.agg, aes(x = agentprop, color = Condition)) + geom_density()
+
+ggplot(mydata.agg, aes(x = agentprop, fill = Condition)) + geom_density()
+
+ggplot(mydata.agg, aes(x = agentprop, linetype = Condition)) + geom_density()
+
+ggplot(mydata.agg, aes(x = Condition, y= agentprop)) + geom_boxplot()
+
+ggplot(mydata.agg, aes(x = agentprop)) + geom_histogram() + facet_grid(Condition ~.)
+ggplot(mydata.agg, aes(x = agentprop, fill = Condition)) + geom_histogram() + facet_grid(Condition ~.)
+
+ggplot(mydata.wide, aes(x=SRC, y=ORC)) + geom_point() + geom_smooth(method = "loess")
+
+scatter + geom_point() + geom_smooth(method = "lm")
+
+ggplot(mydata.wide, aes(x=SRC, y=ORC, color=Region)) + geom_point()
+
+dev.off()
+
+```
+8. Is there a better type of visualization for your data?  What numbers would you like to be able to visualize better?  Be as explicit as possible, and write some "pseudo-code" to ilustrate what you think you would like.
+My data is best visualized using line graphs or spaghetti plots, to see what is going on moment-by-moment. I would like to visualize the agent preference across regions.
+
+```{r}
+head(mydata.agg)
+mydata.agg.again <- dcast(mydata.agg, Condition + Region ~., fun.aggregate=mean, value.var="agentprop")
+colnames(mydata.agg.again) <- c("Condition","Region","agentprop")
+mydata.agg.again <- mydata.agg.again[mydata.agg.again$Region!="zip", ]
+
+ggplot(data=mydata.agg.again, aes(x=Region, y=agentprop, group=Condition, color=Condition)) + geom_line(size=2)
+```
+
+
+9. Save your Markdown document that answers all of these questions (with code) as well as your PDF, and commit them as changes to your git homework repository.  Push those changes to GitHub by Monday morning at 9am.
+
+

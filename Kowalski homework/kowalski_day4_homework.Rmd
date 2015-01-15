@@ -1,0 +1,119 @@
+---
+title: "Day 4 Homework"
+output: html_document
+---
+```{r}
+library(reshape2)
+mydata <- read.csv("Kowalski_newdata.csv")
+```
+1. Change the column names of your data to something easier to work with.  If you like your column names, change them into something else reasonable, just for practice.
+```{r}
+head(mydata)
+colnames(mydata) <- c("Participant","Trial","Item","Condition","List","Correct","Time","AgentLooks","PatientLooks","MiddleLooks","Region")
+colnames(mydata)
+```
+2. List ALL the issues you can see where it looks like your data is being read in a weird way.  If your data looks perfect, find some way to mess it up :-)
+```{r}
+class(mydata$Trial) #integer
+class(mydata$Item) #integer
+class(mydata$Condition) #integer
+class(mydata$List) #integer
+levels(mydata$Region) # alphabetic order
+```
+3. Pick one or two of the most egregious or problematic of the issues in #2 and fix them.
+```{r}
+class(mydata$Condition) 
+levels(mydata$Condition)
+mydata$Condition <- as.factor(mydata$Condition) # made Condition a factor
+levels(mydata$Condition) <- c("SRC","ORC","Act","Pass") # relabled conditions so they weren't numbers
+levels(mydata$Condition)
+
+levels(mydata$Region)
+levels(mydata$Region) <- factor(c("Before","Disamb","Two","Main","Off","zip")) # reordered the regions
+levels(mydata$Region)
+```
+
+4. Check for NAs, and report where you see them (try to pinpoint where they are, not just "5 NAs in column seven".
+```{r}
+summary(mydata)
+sum(is.na(mydata))
+#no NAs when the data is wide
+save <- mydata
+mydata.long <- melt(mydata, id.vars = c("Participant","Trial","Item","Condition","List","Correct","Time","Region"), value.name = "Looks", variable.name ="Character")
+head(mydata.long)
+sum(is.na(mydata.long))
+# still no NA's when the data is long - I must have done something wrong in the previous HW, where I ended up with a lot of NA's after melting the data
+
+which(is.na(mydata[, 1]))
+
+complete.cases(mydata)
+mydata[!complete.cases(mydata), ]
+which(!complete.cases(mydata))
+```
+
+5. Decide what you think you should do about the NAs, and say why.  If you can, try to implement this decision.
+I don't have any NA's but if I did I would run into problems when I wanted to aggregate over subjects/items/trials. In that case, I'd use `na.rm = TRUE` to ignore those NAs.
+
+6. Remove any problematic rows and/or columns.  Say why you want to remove them.  If there aren't any problems, describe why you think there are no problems.
+I'm going to remove the rows where the region is "zip", which was my shorthand for the time points before the onset of the critical sentence, and after the offset region (500ms after the end of the critical sentence). Basically, any row labeled "zip" has data that I'm not interested in, it's just cluttering up my dataset. 
+```{r}
+head(mydata.long)
+mydata.long2 <- mydata.long[!mydata.long$Region == "zip", ]
+mydata.long2 <- droplevels(mydata.long2)
+levels(mydata.long2$Region)
+```
+7. Re-code at least one factor.  Provide a table that shows the correspondence between old levels and new levels.
+```{r}
+mydata <- mydata.long2
+oldlevels <- (levels(mydata$Region))
+oldlevels
+levels(mydata$Region) <- c("NP1","Disambiguation","Spillover","MainClause","Offset") 
+newlevels <- levels(mydata$Region)
+newlevels
+
+?paste
+savelevels <-data.frame(oldlevels,newlevels)
+savelevels
+```
+8. Run TWO DIFFERENT simple analyses or statistical tests, such as linear regression (`lm()`), logistic regression (`glm()`), correlation test (`cor.test()`), t-test (`t.test()`), or non-parametric tests (e.g., `wilcox.test()`).  For each of these:
+  - Describe why you are doing this analysis, i.e., what question is it answering?
+  - I won't judge you on statistical expertise!  (though I will make comments if I think I can be helpful)
+  - Report some key statistics from the analysis, using inline code
+```{r}
+mydata <- save # I saved the wide format
+head(mydata)
+mydata <- mydata[mydata$Region != "zip", ]
+
+mydata$agentprop <- ifelse(mydata$AgentLooks == 1, 1, NA)
+mydata$agentprop <- ifelse(mydata$PatientLooks == 1, -1, mydata$agentprop)
+mydata$agentprop <- ifelse(mydata$MiddleLooks == 1, 0.5, mydata$agentprop)
+sum(is.na(mydata$agentprop))
+
+mydata.2 <- mydata[ ,c("Participant","Trial","Item","Condition","List","Time","Region","agentprop")]
+head(mydata.2)
+mydata.agg <- dcast(mydata.2, Participant + Condition + Region ~., fun.aggregate = mean, value.var = "agentprop")
+colnames(mydata.agg) <- c("Participant","Condition","Region","agentprop")
+head(mydata.agg)
+
+mydata.agg.RCs <- mydata.agg[mydata.agg$Condition=="SRC" | mydata.agg$Condition =="ORC", ]
+head(mydata.agg.RCs)
+
+results <- lm(agentprop ~ Region, data = mydata.agg.RCs)
+summary <- summary(results)
+summary
+names(summary)
+summary$coefficients
+est <- summary$coefficients["RegionDisamb","Estimate"]
+std.err <- summary$coefficients["RegionDisamb","Std. Error"]
+pval <- summary$coefficients["RegionDisamb","Pr(>|t|)"] 
+```
+I did a linear regression to see whether agent preference could be predicted by region. The critical region of analysis is the disambiguating region, the point at which it is clear whether the unfolding construction is an SRC or and ORC. The estimate for the RegionDisamb coefficient was `r round(est, 3)`, with a standard error of `r round(std.err, 3)` and a p of `r round(pval, 3)`.
+
+```{r}
+ttest <- t.test(mydata.agg$agentprop[mydata.agg$Region=="Disamb" & mydata.agg$Condition=="SRC"], mydata.agg$agentprop[mydata.agg$Region=="Disamb" & mydata.agg$Condition=="ORC"], paired=TRUE) 
+ttest
+meanofdiff <- ttest$estimate
+pvalue <- ttest$p.value
+
+```
+I did a t-test to determine whether, at the point of linguistic disambiguation between subject-relative and object-relative clauses (SRC, ORC), there is a significant difference between the proportion of looks to the agent in the SRC case and the ORC case. There was a significant difference such that there were more looks to the agent in the SRC condition than in the ORC condition (mean of the differences = `r round(meanofdiff, 2)`), with a p-value of `r round(pvalue, 3)`. 

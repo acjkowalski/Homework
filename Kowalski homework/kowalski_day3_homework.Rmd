@@ -1,0 +1,77 @@
+---
+title: "Day 3 Homework"
+output: html_document
+---
+
+The goal of this homework is to get practice with manipulating data.
+```{r}
+library("reshape2")
+mydata <- read.csv("Kowalski_newdata.csv", stringsAsFactors=FALSE)
+```
+1. Make both a "wide" and a "long" version of your data
+```{r}
+head(mydata)
+mydata.melt <- melt(mydata, id.vars = c("Subject","Trial","Item","Condition","Order","Accuracy","ms", "region"), value.name = "Looks", variable.name = "Character")
+head(mydata.melt)
+
+mydata.cast <- dcast(mydata, Subject + Trial + Item + Condition + Order + ms + Patient + Middle ~ region, value.var = "Agent")
+head(mydata.cast) # I think there are a lot of NA's at the beginning and end because not every participant in every trial has data for every timepoint. 
+
+
+
+## from class: casting with a LOT of variables
+# what you want: mydata.wide <- dcast(mydata.long, [80 columns here ~ split])
+
+columns.to.keep <- colnames(mydata.long)[1:80] # make a vector of those things 
+columns.to.keep.pasted <- paste(columns.to.keep, collapse = " + ") # takes a vector and pastes together with +, makes one string
+my.cast.formula <- as.formula(past(columns.to.keep.pasted, " ~ split"))
+class(my.cast.formula) # 'formula'
+my.data.wide <- dcast(mydata.ong, formula = my.cast.formula)
+
+
+```
+2. Transform a variable
+```{r}
+mydata$ms200 <- mydata$ms - 200
+```
+3. Recode a factor
+```{r}
+mydata$Condition <- as.factor(mydata$Condition)
+levels(mydata$Condition)
+levels(mydata$Condition) <- c("SRC","ORC","Act","Pass")
+```
+
+4. Add a new factor, where the levels are conditional on the values of some other variable. E.g., a factor of "high", "medium", and "low" based on thresholds for another variable.
+```{r}
+mydata$beforeonset <- "after"
+mydata$beforeonset[mydata$ms < 0] <- "before"
+xtabs(~ beforeonset, data = mydata)
+mydata$beforeonset <- as.factor(mydata$beforeonset)
+```
+5. Reorder the levels of this new factor
+```{r}
+levels(mydata$beforeonset)
+mydata$beforeonset <- relevel(mydata$beforeonset, "before")
+levels(mydata$beforeonset)
+```
+6. Choose a factor that could be re-coded as multiple dimensions (recall the sepal/petal vs. length/width breakdown). If you don't have one, try to create one.  Now create two (or more) new factors that represent these dimensions.
+```{r}
+head(mydata)
+mydata$Construction <- "RC"
+mydata$Construction[mydata$Condition %in% c("Act","Pass")] <- "Transitive"
+xtabs(~ Construction, data = mydata)
+mydata$Construction <- as.factor(mydata$Construction)
+
+mydata$NP1 <- "Agent"
+mydata$NP1[mydata$Condition %in% c("ORC","Pass")] <- "Theme"
+xtabs(~ NP1, data = mydata)
+mydata$NP1 <- as.factor(mydata$NP1)
+```
+7. Using `dcast`, aggregate some variable into "cell means" of some kind.
+```{r}
+head(mydata)
+mydata.agg <- dcast(mydata, Condition ~ region, value.var = "Agent", fun.aggregate = mean, na.rm=TRUE)
+head(mydata.agg)
+```
+
+8.  Save all of the above in a well-documented R Markdown document.  Email me the .Rmd file (and if you use different or updated data from Day 2 Homework, send that to me, too).
