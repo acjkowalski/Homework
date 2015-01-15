@@ -1,0 +1,74 @@
+---
+title: "Day 9 Homework"
+output: html_document
+---
+```{r}
+mydata <- read.csv("Kowalski_rprogrammingdata.csv")
+library("dplyr")
+```
+1. Write a function to do a bunch of clean-up and formatting to your data.
+```{r}
+my.msec50.func <- function(data, time1, time2) {
+  mutate(data, ms50 = floor((time1 - time2)/50))
+}
+
+mydata2 <- my.msec50.func(mydata, mydata$Time, mydata$StartTime)
+head(mydata2)
+```
+2. Make sure this function works on your data.
+
+3. Get some subset of your data, or find a similar-but-not-identical data set.  Change up the column order.  Re-run your function on this new data.  Does it work?
+```{r}
+mydata.rearrange <- mydata
+mydata.rearrange$tempTime <- mydata$Time
+mydata.rearrange$Time <- NULL
+
+mydata3 <- my.msec50.func(mydata.rearrange, mydata.rearrange$tempTime, mydata.rearrange$StartTime)
+head(mydata3)
+````
+4. Fix your function to be able to work on the new data.
+it works!
+
+5. Write a function to do some kind of summary stat, and use the `dplyr` functions to run this function over groups of your data.
+```{r}
+# summary stat function
+agentprop.func <- function(x, y, z) { 
+  output <- vector(length = length(x))  
+  for (i in 1:length(x)) {
+    if(x[i] == 1) {
+      output[i] <- 1}
+    if (y[i] == 1) {
+      output[i]<- 0 }
+    if (z[i] == 1) {
+      output[i] <- 0.5}
+    }
+  mean.agentprop <- mean(output)
+  mean.agentprop}
+
+agentprop.func(mydata$Agent, mydata$Patient, mydata$Middle)
+
+## with groups of my data
+
+agentprop.func <- function(x, y, z) { 
+  output <- vector(length = length(x))  
+  for (i in 1:length(x)) {
+    if(x[i] == 1) {
+      output[i] <- 1}
+    if (y[i] == 1) {
+      output[i]<- 0 }
+    if (z[i] == 1) {
+      output[i] <- 0.5}
+    }
+  mean.agentprop <- mean(output)
+  mean.agentprop}
+
+mydata %>%
+  filter(Condition == 1) %>%
+  summarize(mean = agentprop.func(Agent, Patient, Middle))
+
+mydata %>%
+  group_by(Condition) %>%
+  filter(Accuracy == 1) %>%
+  summarize(mean = agentprop.func(Agent, Patient, Middle))
+
+```
